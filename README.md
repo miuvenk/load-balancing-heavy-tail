@@ -1,7 +1,7 @@
 # Load Balancing with Heavy-Tailed Tasks 🚀
 
 This project evaluates different dispatching strategies for request processing times with heavy-tailed behavior. 
-It is part of the Performance and Scalability course at Ca' Foscari University.
+It is project of the Software Performance and Scalability course at Ca' Foscari University.
 
 ## 🛠 Project Structure
 - `main.py`: Entry point for launching the 3 servers and the dispatcher.
