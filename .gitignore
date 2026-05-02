@@ -1,0 +1,17 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Data files
+data/*.csv
+
+# Virtual environments
+venv/
+.venv/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store (Mac)
+Thumbs.db (Windows)

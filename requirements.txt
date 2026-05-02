@@ -1,0 +1,4 @@
+numpy          # For Pareto distribution and mathematical operations
+psutil         # For pinning server processes to specific CPU cores
+matplotlib     # For generating response time and scalability plots
+pandas         # For saving and managing experiment data in CSV format
