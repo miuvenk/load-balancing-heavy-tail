@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Load Balancing Smoke Test - 5 Policies</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f4f0;
+    --text: #1a1a1a;
+    --text-mute: #5f5e5a;
+    --text-faint: #888780;
+    --border: rgba(0,0,0,0.12);
+    --info: #185FA5;
+    --info-bg: #E6F1FB;
+    --danger: #A32D2D;
+    --col-5001: #1D9E75;
+    --col-5002: #7F77DD;
+    --col-5003: #D85A30;
+    --mean: #888780;
+    --p50: #85B7EB;
+    --p90: #378ADD;
+    --p99: #0C447C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --bg2: #2c2c2a;
+      --text: #ededed;
+      --text-mute: #b4b2a9;
+      --text-faint: #888780;
+      --border: rgba(255,255,255,0.15);
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1.25rem;
+    line-height: 1.55;
+  }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .subtitle { color: var(--text-mute); font-size: 13px; margin-bottom: 1.5rem; }
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+  .card { background: var(--bg2); border-radius: 8px; padding: 12px; }
+  .card.featured { border: 2px solid var(--info); background: var(--info-bg); }
+  .card .name { font-size: 12px; color: var(--text-mute); }
+  .card .name.info { color: var(--info); }
+  .card .num { font-size: 18px; font-weight: 500; margin-top: 2px; }
+  .card .num.danger { color: var(--danger); }
+  .card .hint { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  .card .hint.danger { color: var(--danger); }
+  .label { font-size: 13px; color: var(--text-mute); margin-bottom: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 8px; font-size: 12px; color: var(--text-mute); }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; }
+  .swatch.round { border-radius: 50%; }
+  .chart-wrap { position: relative; width: 100%; }
+  .h280 { height: 280px; }
+  .h320 { height: 320px; }
+  .h220 { height: 220px; }
+  .section { margin: 1.5rem 0; }
+  .notes { background: var(--bg2); border-radius: 8px; padding: 1rem 1.25rem; margin-top: 2rem; font-size: 14px; }
+  .notes h3 { font-size: 14px; font-weight: 500; margin: 0 0 8px; }
+  .notes ul { margin: 0; padding-left: 1.25rem; color: var(--text-mute); }
+  .notes li { margin: 4px 0; }
+  .notes b { font-weight: 500; color: var(--text); }
+</style>
+</head>
+<body>
+
+<h1>Load balancing - 5 policies, smoke test</h1>
+<div class="subtitle">30 requests, &lambda; = 8 req/s, bounded-Pareto sizes x &isin; [1, 5], server &alpha; = 1.3 (one CPU, no pinning).</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="name">random</div>
+    <div class="num">31.5 ms</div>
+    <div class="hint">p99 129 ms</div>
+  </div>
+  <div class="card">
+    <div class="name">round_robin</div>
+    <div class="num">27.8 ms</div>
+    <div class="hint">p99 123 ms</div>
+  </div>
+  <div class="card">
+    <div class="name">jsq</div>
+    <div class="num">32.6 ms</div>
+    <div class="hint">p99 198 ms</div>
+  </div>
+  <div class="card">
+    <div class="name">lwl</div>
+    <div class="num danger">95.6 ms</div>
+    <div class="hint danger">p99 1086 ms</div>
+  </div>
+  <div class="card featured">
+    <div class="name info">sita &#9733;</div>
+    <div class="num">21.5 ms</div>
+    <div class="hint">p99 61 ms</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Response-time percentiles per policy (log scale, ms)</div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#888780"></span>mean</span>
+    <span><span class="swatch" style="background:#85B7EB"></span>p50</span>
+    <span><span class="swatch" style="background:#378ADD"></span>p90</span>
+    <span><span class="swatch" style="background:#0C447C"></span>p99</span>
+  </div>
+  <div class="chart-wrap h280"><canvas id="pctChart" role="img" aria-label="Grouped bar chart of mean, p50, p90, p99 response times for each of the five policies on a log scale"></canvas></div>
+</div>
+
+<div class="section">
+  <div class="label">Every request's response time, colored by server (log scale)</div>
+  <div class="legend">
+    <span><span class="swatch round" style="background:#1D9E75"></span>server 5001</span>
+    <span><span class="swatch round" style="background:#7F77DD"></span>server 5002</span>
+    <span><span class="swatch round" style="background:#D85A30"></span>server 5003</span>
+  </div>
+  <div class="chart-wrap h320"><canvas id="scatterChart" role="img" aria-label="Scatter of response time per request id for each policy, colored by server"></canvas></div>
+</div>
+
+<div class="section">
+  <div class="label">Requests dispatched to each server</div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#1D9E75"></span>5001</span>
+    <span><span class="swatch" style="background:#7F77DD"></span>5002</span>
+    <span><span class="swatch" style="background:#D85A30"></span>5003</span>
+  </div>
+  <div class="chart-wrap h220"><canvas id="loadChart" role="img" aria-label="Stacked bar chart showing how the 30 requests were distributed across the three servers under each policy"></canvas></div>
+</div>
+
+<div class="notes">
+  <h3>Takeaways</h3>
+  <ul>
+    <li><b>SITA wins on every percentile.</b> Lowest p50, p90, and p99. No request above 70 ms across the run.</li>
+    <li><b>LWL has two ~1 s outliers</b> on server 5001 (requests 25 and 29). LWL routes by &Sigma; x, which doesn't know about the random Pareto multiplier; one straggler poisons a server and trailing small jobs queue behind it.</li>
+    <li><b>Random's load split (14 / 2 / 14) is wildly uneven</b>, but at this light load the tail is still moderate - the imbalance only hurts more as &lambda; rises.</li>
+    <li>This run is small and at low load. The interesting story will appear at higher &lambda; (saturation) and lower &alpha; (heavier tails).</li>
+  </ul>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+  const policies = ['random','round_robin','jsq','lwl','sita'];
+
+  new Chart(document.getElementById('pctChart'), {
+    type: 'bar',
+    data: {
+      labels: policies,
+      datasets: [
+        { label: 'mean', data: [31.5, 27.8, 32.6, 95.6, 21.5], backgroundColor: '#888780' },
+        { label: 'p50',  data: [24.8, 16.5, 18.7, 22.9, 17.5], backgroundColor: '#85B7EB' },
+        { label: 'p90',  data: [64.1, 91.8, 71.7, 98.2, 40.1], backgroundColor: '#378ADD' },
+        { label: 'p99',  data: [129.0, 123.3, 197.8, 1085.5, 61.2], backgroundColor: '#0C447C' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { type: 'logarithmic',
+             ticks: { callback: (v) => v + ' ms' },
+             min: 10, max: 2000 },
+        x: { ticks: { autoSkip: false } }
+      }
+    }
+  });
+
+  // Per-request scatter data extracted from data/*.csv smoke run
+  const csv = {
+    random: [
+      [0,12.801,5003],[1,13.758,5001],[2,129.025,5001],[3,29.228,5003],[4,12.351,5002],
+      [5,16.797,5001],[6,15.070,5001],[7,26.764,5001],[8,30.236,5003],[9,19.119,5001],
+      [10,24.780,5003],[11,62.094,5003],[12,44.614,5003],[13,14.571,5001],[14,30.599,5003],
+      [15,64.056,5002],[16,49.551,5001],[17,36.509,5001],[18,51.151,5001],[19,29.928,5001],
+      [20,21.402,5001],[21,19.328,5003],[22,10.313,5003],[23,11.753,5001],[24,11.663,5003],
+      [25,12.523,5001],[26,72.821,5003],[27,41.847,5003],[28,20.731,5003],[29,10.854,5003]
+    ],
+    round_robin: [
+      [0,15.372,5001],[1,16.399,5002],[2,14.494,5003],[3,13.359,5001],[4,11.341,5002],
+      [5,54.979,5003],[6,91.769,5001],[7,17.423,5002],[8,16.521,5003],[9,11.183,5001],
+      [10,123.340,5002],[11,19.815,5003],[12,36.794,5001],[13,13.026,5002],[14,14.590,5003],
+      [15,18.239,5001],[16,37.897,5002],[17,12.692,5003],[18,14.388,5001],[19,24.463,5002],
+      [20,24.255,5003],[21,29.008,5001],[22,11.571,5002],[23,11.287,5003],[24,12.411,5001],
+      [25,20.209,5002],[26,105.200,5003],[27,13.060,5001],[28,16.916,5002],[29,13.242,5003]
+    ],
+    jsq: [
+      [0,20.282,5003],[1,10.701,5001],[2,16.192,5001],[3,35.023,5003],[4,18.261,5002],
+      [5,30.224,5001],[6,19.511,5002],[7,13.583,5001],[8,20.410,5003],[9,17.544,5001],
+      [10,14.120,5003],[11,11.129,5003],[12,14.408,5003],[13,11.079,5001],[14,37.834,5003],
+      [15,41.941,5002],[16,50.463,5001],[17,12.850,5001],[18,18.732,5001],[19,14.944,5001],
+      [20,10.502,5001],[21,128.169,5003],[22,30.169,5001],[23,71.680,5002],[24,12.881,5003],
+      [25,197.788,5003],[26,48.969,5002],[27,13.076,5001],[28,14.265,5002],[29,21.218,5003]
+    ],
+    lwl: [
+      [0,15.292,5001],[1,18.606,5002],[2,18.699,5003],[3,21.572,5001],[4,11.656,5002],
+      [5,30.917,5002],[6,37.240,5001],[7,98.195,5002],[8,22.890,5003],[9,10.303,5003],
+      [10,30.703,5001],[11,15.185,5003],[12,54.105,5002],[13,64.559,5003],[14,22.485,5003],
+      [15,15.459,5003],[16,29.784,5002],[17,54.791,5002],[18,14.987,5001],[19,15.635,5001],
+      [20,9.468,5001],[21,56.948,5001],[22,9.591,5003],[23,10.176,5002],[24,13.584,5001],
+      [25,1085.453,5001],[26,54.779,5003],[27,71.439,5002],[28,66.570,5003],[29,888.250,5001]
+    ],
+    sita: [
+      [0,10.905,5001],[1,40.097,5001],[2,39.853,5003],[3,19.142,5001],[4,13.799,5001],
+      [5,13.348,5002],[6,12.274,5001],[7,20.796,5002],[8,21.698,5002],[9,13.621,5001],
+      [10,17.203,5003],[11,13.628,5001],[12,14.789,5002],[13,31.357,5001],[14,13.928,5003],
+      [15,17.460,5003],[16,61.166,5003],[17,29.232,5002],[18,20.218,5003],[19,14.515,5002],
+      [20,11.029,5001],[21,19.291,5002],[22,10.807,5001],[23,10.982,5002],[24,18.033,5002],
+      [25,12.649,5001],[26,44.219,5003],[27,39.677,5003],[28,24.714,5003],[29,15.493,5002]
+    ]
+  };
+
+  const color = (port) => port === 5001 ? '#1D9E75' : port === 5002 ? '#7F77DD' : '#D85A30';
+  const POL_W = 30, GAP = 6;
+  const datasets = [];
+  policies.forEach((pol, pi) => {
+    [5001, 5002, 5003].forEach(port => {
+      const pts = csv[pol].filter(r => r[2] === port)
+        .map(r => ({ x: pi * (POL_W + GAP) + r[0], y: r[1] }));
+      if (pts.length === 0) return;
+      datasets.push({
+        label: pol + ' / ' + port,
+        data: pts,
+        backgroundColor: color(port),
+        pointRadius: 3.5,
+        pointHoverRadius: 5
+      });
+    });
+  });
+
+  new Chart(document.getElementById('scatterChart'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: (ctx) => 'response ' + ctx.parsed.y.toFixed(1) + ' ms'
+        }}
+      },
+      scales: {
+        y: { type: 'logarithmic',
+             title: { display: true, text: 'response time (ms)' },
+             min: 5, max: 1500,
+             ticks: { callback: (v) => v + ' ms' } },
+        x: { type: 'linear',
+             min: -2, max: policies.length * (POL_W + GAP),
+             ticks: {
+               autoSkip: false,
+               callback: function(val) {
+                 const idx = Math.round(val);
+                 const band = (POL_W + GAP);
+                 if (idx % band === Math.floor(POL_W / 2)) {
+                   return policies[Math.floor(idx / band)];
+                 }
+                 return '';
+               },
+               maxRotation: 0
+             },
+             grid: { display: false } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('loadChart'), {
+    type: 'bar',
+    data: {
+      labels: policies,
+      datasets: [
+        { label: '5001', data: [14, 10, 13, 11, 11], backgroundColor: '#1D9E75' },
+        { label: '5002', data: [2, 10, 6, 9, 10],   backgroundColor: '#7F77DD' },
+        { label: '5003', data: [14, 10, 11, 10, 9], backgroundColor: '#D85A30' }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => 'server ' + ctx.dataset.label + ': ' + ctx.parsed.x + ' jobs' } } },
+      scales: {
+        x: { stacked: true, min: 0, max: 30, title: { display: true, text: 'requests (total = 30)' } },
+        y: { stacked: true }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
