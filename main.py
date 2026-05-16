@@ -10,15 +10,15 @@ def start_server(port, core_id):
     """
 
     #NOTE FOR MACOS USERS: Use "python3" instead of "python"
-    cmd = ["python3", "-m", "src.server", str(port)]
+    cmd = ["python", "-m", "src.server", str(port)]
     process = subprocess.Popen(cmd)
     
     #CPU Pinning: Bind the process to a specific physical core
     #! WINDOWS/LINUX: Uncomment the following 2 lines to enable strict core affinity.
     #! MACOS: Keep these lines commented. macOS (Darwin) does not support standard 
     #! process.cpu_affinity() due to kernel-level scheduling restrictions.
-    #p = psutil.Process(process.pid)
-    #p.cpu_affinity([core_id])
+    p = psutil.Process(process.pid)
+    p.cpu_affinity([core_id])
 
     print(f"Server started on Port: {port} | Pinned to Core: {core_id} | PID: {process.pid}")
     return process
