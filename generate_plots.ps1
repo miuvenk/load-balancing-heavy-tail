@@ -11,8 +11,7 @@
 #    notebooks\figures\sweep2_alpha\
 #    notebooks\figures\sweep3_dist\
 #    notebooks\figures\sweep4_stress\
-#    notebooks\figures\sweep4_bottleneck\
-#    notebooks\figures\sweep5_worstcase\
+#    notebooks\figures\sweep5_bottleneck\
 # =============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -166,21 +165,6 @@ Plot-Sweep -SweepName "sweep3_dist_all" `
            )
 
 # =============================================================================
-# SWEEP 4 -- Bottleneck Sweep (one sub-folder per lambda)
-# Files: *_lam{40,60,75,100,120,135,147}_alpha1.3_bottleneck.csv
-# =============================================================================
-$bottleneckLams = @("40", "60", "75", "100", "120", "135", "147")
-foreach ($l in $bottleneckLams) {
-    Plot-Sweep -SweepName "sweep4_bottleneck_lam$l" `
-               -OutDir "$FIGS\sweep4_bottleneck\lam$l" `
-               -Patterns @("*_lam${l}_alpha1.3_bottleneck.csv")
-}
-
-Plot-Sweep -SweepName "sweep4_bottleneck_all" `
-           -OutDir "$FIGS\sweep4_bottleneck\all" `
-           -Patterns @("*_bottleneck.csv")
-
-# =============================================================================
 # SWEEP 4 -- Saturation Stress Test (from run_experiments.ps1)
 # Files: *_lam{25,30}_alpha1.3_stress.csv
 # =============================================================================
@@ -189,13 +173,20 @@ Plot-Sweep -SweepName "sweep4_stress" `
            -Patterns @("*_stress.csv")
 
 # =============================================================================
-# SWEEP 5 -- Worst Case
-# Files: *_lam15_alpha1.3_worstcase.csv
+# SWEEP 5 -- Bottleneck Sweep (one sub-folder per lambda)
+# Files: *_lam{40,60,75,100,120,135,147}_alpha1.3_bottleneck.csv
 # =============================================================================
-Plot-Sweep -SweepName "sweep5_worstcase" `
-           -OutDir "$FIGS\sweep5_worstcase" `
-           -Patterns @("*_worstcase.csv")
+$bottleneckLams = @("40", "60", "75", "100", "120", "135", "147")
+foreach ($l in $bottleneckLams) {
+    Plot-Sweep -SweepName "sweep5_bottleneck_lam$l" `
+               -OutDir "$FIGS\sweep5_bottleneck\lam$l" `
+               -Patterns @("*_lam${l}_alpha1.3_bottleneck.csv")
+}
 
+Plot-Sweep -SweepName "sweep5_bottleneck_all" `
+           -OutDir "$FIGS\sweep5_bottleneck\all" `
+           -Patterns @("*_bottleneck.csv")
+           
 # =============================================================================
 # SUMMARY
 # =============================================================================
@@ -211,7 +202,6 @@ Write-Host "    notebooks\figures\sweep2_alpha\all\         <- all alphas combin
 Write-Host "    notebooks\figures\sweep3_dist\uniform\      <- dist per type"        -ForegroundColor DarkGray
 Write-Host "    notebooks\figures\sweep3_dist\all\          <- all dists combined"   -ForegroundColor DarkGray
 Write-Host "    notebooks\figures\sweep4_stress\            <- lam=25,30 stress"     -ForegroundColor DarkGray
-Write-Host "    notebooks\figures\sweep4_bottleneck\lam100\ <- bottleneck per lam"   -ForegroundColor DarkGray
-Write-Host "    notebooks\figures\sweep4_bottleneck\all\    <- all lams combined"    -ForegroundColor DarkGray
-Write-Host "    notebooks\figures\sweep5_worstcase\         <- worst case"           -ForegroundColor DarkGray
+Write-Host "    notebooks\figures\sweep5_bottleneck\lam100\ <- bottleneck per lam"   -ForegroundColor DarkGray
+Write-Host "    notebooks\figures\sweep5_bottleneck\all\    <- all lams combined"    -ForegroundColor DarkGray
 Write-Host ""

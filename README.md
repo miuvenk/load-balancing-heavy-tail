@@ -20,9 +20,9 @@ It is a project for the **Software Performance and Scalability** course at Ca' F
 │   ├── plot_results.py     # Reads CSVs, produces PNG figures
 │   └── figures/            # Generated plots (gitignored)
 ├── data/                   # Experiment result CSVs (gitignored)
-├── run_experiments.ps1     # PowerShell: runs Sweeps 1, 3, 4, 5
+├── run_experiments.ps1     # PowerShell: runs Sweeps 1, 3, 4
 ├── run_alpha_sweep.ps1     # PowerShell: runs Sweep 2 (alpha), manages server restarts
-├── run_bottleneck_sweep.ps1# PowerShell: runs Bottleneck sweep (lam=40..147)
+├── run_bottleneck_sweep.ps1# PowerShell: runs Bottleneck sweep 5 (lam=40..147)
 └── generate_plots.ps1      # PowerShell: generates per-sweep figure sets
 ```
 
@@ -150,10 +150,9 @@ Plots are written to `notebooks/figures/sweep{N}_*/`.
 | 2 — Alpha sweep | run_alpha_sweep.ps1 | 10 | 500–1000 | 1.1, 1.3, 1.5, 2.0, 3.0 | Heavy-tail parameter effect |
 | 3 — Size dist sweep | run_experiments.ps1 | 10 | 1000 | 1.3 | Effect of x variability |
 | 4 — Saturation stress | run_experiments.ps1 | 25, 30 | 2000 | 1.3 | System overload |
-| 5 — Worst case | run_experiments.ps1 | 15 | 2000 | 1.3 | Sustained high pressure |
-| Bottleneck | run_bottleneck_sweep.ps1 | 40–147 | 2000 | 1.3 | Find saturation point |
+| 5 - Bottleneck | run_bottleneck_sweep.ps1 | 40–147 | 2000 | 1.3 | Find saturation point |
 
-Total: **130 runs**. Theoretical system capacity: ~147 req/s (3 × ~49 req/s per server, derived from mean service time ~20ms at low load).
+Total: **125 runs**. Theoretical system capacity: ~147 req/s (3 × ~49 req/s per server, derived from mean service time ~20ms at low load).
 
 ---
 

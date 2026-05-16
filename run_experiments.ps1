@@ -33,7 +33,7 @@ function Write-Skip($msg)  { Write-Host "  [SKIP] $msg" -ForegroundColor DarkGra
 $START_TIME = Get-Date
 Write-Host ""
 Write-Host "  Load Balancing -- Main Experiment Suite" -ForegroundColor White
-Write-Host "  Sweeps: 1 (Load)  3 (Size dist)  4 (Saturation)  5 (Worst case)" -ForegroundColor DarkGray
+Write-Host "  Sweeps: 1 (Load)  3 (Size dist)  4 (Saturation) " -ForegroundColor DarkGray
 Write-Host "  Started: $($START_TIME.ToString('yyyy-MM-dd HH:mm:ss'))" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -158,18 +158,6 @@ foreach ($lam in $satScenarios) {
     foreach ($pol in $POLICIES) {
         Run-Experiment -Policy $pol -Lam $lam -N 2000 -Tag "stress"
     }
-}
-
-# =============================================================================
-# SWEEP 5 -- COMBINED WORST CASE
-# Goal   : High arrival rate for maximum queue pressure.
-#          Answers "Which strategy performs best and why?"
-# Fixed  : lam=15, alpha=1.3, bounded_pareto, N=2000
-# =============================================================================
-Write-Header "SWEEP 5 -- Combined Worst Case  (lam=15, alpha=1.3, N=2000)"
-
-foreach ($pol in $POLICIES) {
-    Run-Experiment -Policy $pol -Lam 15 -N 2000 -Tag "worstcase"
 }
 
 # =============================================================================
