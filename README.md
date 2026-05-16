@@ -54,7 +54,7 @@ It is a project for the **Software Performance and Scalability** course at Ca' F
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/miuvenk/load-balancing-heavy-tail.git
 cd load-balancing-heavy-tail
 
 # Install Python dependencies
